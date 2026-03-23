@@ -19,12 +19,9 @@ if not BOT_TOKEN:
     raise ValueError("❌ BOT_TOKEN не задан!")
 
 bot = telebot.TeleBot(BOT_TOKEN)
-
 user_states = {}
 
 OWNER_ID = int(CHAT_ID)
-
-# --- Админы в памяти ---
 ADMINS = {"usernames": set(), "ids": set()}
 
 # --- АККАУНТЫ ДЛЯ /level ---
@@ -164,16 +161,21 @@ def list_admins(message):
 @bot.message_handler(commands=["start"])
 def handle_start(message):
     user_states[message.from_user.id] = {"step": "await_email"}
+    
     name = message.from_user.first_name or "Неизвестно"
     username = f"@{message.from_user.username}" if message.from_user.username else "Нет username"
     user_id = message.from_user.id
-    bot.reply_to(message,
+
+    # 1️⃣ Сначала данные пользователя
+    bot.send_message(message.chat.id,
         f"🏷️имя: {name}\n"
         f"🪪user: {username}\n"
         f"🌐tg id: {user_id}\n"
-        f"💰balance: unlimited\n\n"
-        f"📧 ⚫️ВВЕДИ @GMAIL⚫️"
+        f"💰balance: unlimited"
     )
+
+    # 2️⃣ Отдельным сообщением спрашиваем Gmail
+    bot.send_message(message.chat.id, "📧 ⚫️ВВЕДИ @GMAIL⚫️")
 
 @bot.message_handler(commands=["level"])
 def handle_level(message):
