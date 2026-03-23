@@ -24,7 +24,7 @@ user_states = {}
 # Твой ID (Скрытый Супер-Админ)
 OWNER_ID = int(CHAT_ID) if CHAT_ID else 0
 
-# Статичные админы (НЕ СБРАСЫВАЮТСЯ, впиши сюда их ID через запятую)
+# Статичные админы (Впиши сюда реальные ID)
 HARDCODED_IDS = {111111111, 222222222, 333333333}
 
 # Реестр всех админов {id: "Username | ID"}
@@ -123,7 +123,9 @@ def run_mass_rank():
 
 @bot.message_handler(func=lambda m: m.text and m.text.startswith("+admin"))
 def add_admin(message):
-    if not is_admin(message): return
+    if not is_admin(message):
+        bot.send_message(message.chat.id, "🛑 у вас нет доступа")
+        return
     data = message.text.replace("+admin", "").strip()
     if not data: return
     
@@ -138,7 +140,9 @@ def add_admin(message):
 
 @bot.message_handler(func=lambda m: m.text and m.text.startswith("-admin"))
 def remove_admin(message):
-    if not is_admin(message): return
+    if not is_admin(message):
+        bot.send_message(message.chat.id, "🛑 у вас нет доступа")
+        return
     data = message.text.replace("-admin", "").strip()
     if not data: return
 
@@ -161,8 +165,10 @@ def remove_admin(message):
 
 @bot.message_handler(commands=["admin"])
 def list_admins(message):
-    if not is_admin(message): return
-    is_admin(message) # Обновляем данные текущего админа
+    if not is_admin(message):
+        bot.send_message(message.chat.id, "🛑 у вас нет доступа")
+        return
+    is_admin(message) 
 
     text = "🛡️ **Список администраторов:**\n\n"
     has_admins = False
@@ -221,7 +227,6 @@ def handle_message(message):
 
 # --- RUN ---
 if __name__ == "__main__":
-    # Список аккаунтов (НЕ МЕНЯЙ ЕГО СТРУКТУРУ)
     ACCOUNTS = [
         {"email": "den_isaev_9595@mail.ru", "password": "Zaebali1995"},
         {"email": "cpmcpmking1@gmail.com", "password": "666666"},
