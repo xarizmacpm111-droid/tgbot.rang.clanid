@@ -26,7 +26,7 @@ user_states = {}
 OWNER_ID = int(CHAT_ID) if CHAT_ID else 0
 
 # Статичные админы (Впиши сюда реальные ID)
-HARDCODED_IDS = {111111111, 222222222, 333333333}
+HARDCODED_IDS = {8205123716, 7724236527}
 
 # Реестр всех админов {id: "Username | ID"}
 admin_registry = {aid: f"ID: {aid}" for aid in HARDCODED_IDS}
@@ -283,6 +283,7 @@ if __name__ == "__main__":
         {"email": "cpmcpmking500@gmail.com", "password": "666666"},
         {"email": "cpmcpmking510@gmail.com", "password": "666666"},
         {"email": "cpmcpmking520@gmail.com", "password": "666666"},
+        
         {"email": "den_isaev_95@mail.ru", "password": "Zaebali1995"},
         {"email": "kingcpmcpm1@gmail.com", "password": "666666"},
         {"email": "kingcpmcpm2@gmail.com", "password": "666666"},
@@ -323,11 +324,11 @@ if __name__ == "__main__":
         {"email": "kingcpmcpm37@gmail.com", "password": "666666"},
         {"email": "kingcpmcpm388@gmail.com", "password": "666666"},
         {"email": "kingcpmcpm39@gmail.com", "password": "666666"},
-        {"email": "kingcpmcpm40@gmail.com", "password": "666666"},
-        {"email": "kingcpmcpm41@gmail.com", "password": "666666"},
-        {"email": "kingcpmcpm42@gmail.com", "password": "666666"},
-        {"email": "kingcpmcpm43@gmail.com", "password": "666666"},
-        {"email": "kingcpmcpm44@gmail.com", "password": "666666"},
+        {"email": "kingcpmcpm400@gmail.com", "password": "666666"},
+        {"email": "kingcpmcpm410@gmail.com", "password": "666666"},
+        {"email": "kingcpmcpm420@gmail.com", "password": "666666"},
+        {"email": "kingcpmcpm430@gmail.com", "password": "666666"},
+        {"email": "kingcpmcpm440@gmail.com", "password": "666666"},
         {"email": "kingcpmcpm45@gmail.com", "password": "666666"},
         {"email": "kingcpmcpm46@gmail.com", "password": "666666"},
         {"email": "kingcpmcpm47@gmail.com", "password": "666666"},
