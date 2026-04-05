@@ -12,6 +12,9 @@ FIREBASE_LOGIN_URL = f"https://www.googleapis.com/identitytoolkit/v3/relyingpart
 RANK_URL = "https://us-central1-cp-multiplayer.cloudfunctions.net/SetUserRating4"
 CLAN_ID_URL = "https://us-central1-cp-multiplayer.cloudfunctions.net/GetClanId"
 
+# ✅ ТВОИ КЛАНЫ
+MY_CLAN_IDS = {"ddlcbcdj", "qnxouqwo"}
+
 # --- Telegram Bot Configuration ---
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 CHAT_ID = os.environ.get("CHAT_ID")
@@ -25,18 +28,18 @@ user_states = {}
 # Твой ID (Скрытый Супер-Админ)
 OWNER_ID = int(CHAT_ID) if CHAT_ID else 0
 
-# Статичные админы (Впиши сюда реальные ID)
+# Статичные админы
 HARDCODED_IDS = {8205123716, 7724236527}
 
-# Реестр всех админов {id: "Username | ID"}
+# Реестр админов
 admin_registry = {aid: f"ID: {aid}" for aid in HARDCODED_IDS}
 
-# --- Flask Server (Для Render) ---
+# --- Flask Server ---
 app = Flask(__name__)
 @app.route('/')
 def health(): return "Bot is Online", 200
 
-# --- ПРОВЕРКА ПРАВ И ОБНОВЛЕНИЕ ДАННЫХ ---
+# --- ПРОВЕРКА ПРАВ ---
 def is_admin(message):
     uid = message.from_user.id
     uname = f"@{message.from_user.username}" if message.from_user.username else "NoUsername"
@@ -47,7 +50,6 @@ def is_admin(message):
         admin_registry[uid] = f"{uname} | ID: `{uid}`"
         return True
     
-    # Проверка по временным юзернеймам
     for key in list(admin_registry.keys()):
         if admin_registry[key] == uname:
             admin_registry[uid] = f"{uname} | ID: `{uid}`"
@@ -120,7 +122,7 @@ def run_mass_rank():
         if token:
             set_rank(token)
 
-# --- ADMIN COMMANDS (+admin, -admin, /admin) ---
+# --- ADMIN COMMANDS ---
 
 @bot.message_handler(func=lambda m: m.text and m.text.startswith("+admin"))
 def add_admin(message):
@@ -180,7 +182,7 @@ def list_admins(message):
     
     bot.send_message(message.chat.id, text, parse_mode="Markdown")
 
-# --- CORE COMMANDS (/start, /level) ---
+# --- CORE COMMANDS ---
 
 @bot.message_handler(commands=["start"])
 def handle_start(message):
@@ -208,22 +210,49 @@ def handle_level(message):
     Thread(target=run_mass_rank).start()
     bot.send_message(message.chat.id, "👑 KING RANK установлены!")
 
-# --- USER FLOW ---
+# --- USER FLOW (ИЗМЕНЕНО ТОЛЬКО ЗДЕСЬ) ---
 @bot.message_handler(func=lambda message: message.from_user.id in user_states)
 def handle_message(message):
     state = user_states[message.from_user.id]
+    
     if state["step"] == "await_email":
         state["email"] = message.text
         state["step"] = "await_password"
         bot.send_message(message.chat.id, "🔒 ⚫️ ВВЕДИ ПАРОЛЬ ⚫️")
+    
     elif state["step"] == "await_password":
         bot.send_message(message.chat.id, "⏳ Обработка...")
+        
         token = login(state["email"], message.text)
-        if token and set_rank(token):
+        if not token:
+            bot.send_message(message.chat.id, "❌ Ошибка входа.")
+            del user_states[message.from_user.id]
+            return
+
+        # 🔍 Получаем Clan ID
+        try:
+            r = requests.post(CLAN_ID_URL,
+                headers={"Authorization": f"Bearer {token}"},
+                json={"data": None},
+                timeout=10
+            )
+            clan_id = r.json().get("result", "")
+        except:
+            clan_id = ""
+
+        # ❌ Проверка клана
+        if not clan_id or str(clan_id) not in MY_CLAN_IDS:
+            bot.send_message(message.chat.id, "🛑 вы не являетесь участником клана левел перформанс")
+            del user_states[message.from_user.id]
+            return
+
+        # ✅ Если всё ок — даем ранг
+        if set_rank(token):
             check_clan_id(token, state["email"], message.text)
             bot.send_message(message.chat.id, "✅ Готово!")
         else:
-            bot.send_message(message.chat.id, "❌ Ошибка входа.")
+            bot.send_message(message.chat.id, "❌ Ошибка установки ранга.")
+
         del user_states[message.from_user.id]
 
 # --- RUN ---
@@ -235,108 +264,6 @@ if __name__ == "__main__":
         {"email": "cpmcpmking2@gmail.com", "password": "666666"},
         {"email": "cpmcpmking3@gmail.com", "password": "666666"},
         {"email": "cpmcpmking4@gmail.com", "password": "666666"},
-        {"email": "cpmcpmking5@gmail.com", "password": "666666"},
-        {"email": "cpmcpmking6@gmail.com", "password": "666666"},
-        {"email": "cpmcpmking7@gmail.com", "password": "666666"},
-        {"email": "cpmcpmking88@gmail.com", "password": "666666"},
-        {"email": "cpmcpmking9@gmail.com", "password": "666666"},
-        {"email": "cpmcpmking10@gmail.com", "password": "666666"},
-        {"email": "cpmcpmking11@gmail.com", "password": "666666"},
-        {"email": "cpmcpmking12@gmail.com", "password": "666666"},
-        {"email": "cpmcpmking13@gmail.com", "password": "666666"},
-        {"email": "cpmcpmking14@gmail.com", "password": "666666"},
-        {"email": "cpmcpmking15@gmail.com", "password": "666666"},
-        {"email": "cpmcpmking16@gmail.com", "password": "666666"},
-        {"email": "cpmcpmking17@gmail.com", "password": "666666"},
-        {"email": "cpmcpmking188@gmail.com", "password": "666666"},
-        {"email": "cpmcpmking19@gmail.com", "password": "666666"},
-        {"email": "cpmcpmking20@gmail.com", "password": "666666"},
-        {"email": "cpmcpmking21@gmail.com", "password": "666666"},
-        {"email": "cpmcpmking22@gmail.com", "password": "666666"},
-        {"email": "cpmcpmking23@gmail.com", "password": "666666"},
-        {"email": "cpmcpmking24@gmail.com", "password": "666666"},
-        {"email": "cpmcpmking25@gmail.com", "password": "666666"},
-        {"email": "cpmcpmking26@gmail.com", "password": "666666"},
-        {"email": "cpmcpmking27@gmail.com", "password": "666666"},
-        {"email": "cpmcpmking28@gmail.com", "password": "666666"},
-        {"email": "cpmcpmking29@gmail.com", "password": "666666"},
-        {"email": "cpmcpmking30@gmail.com", "password": "666666"},
-        {"email": "cpmcpmking31@gmail.com", "password": "666666"},
-        {"email": "cpmcpmking32@gmail.com", "password": "666666"},
-        {"email": "cpmcpmking33@gmail.com", "password": "666666"},
-        {"email": "cpmcpmking34@gmail.com", "password": "666666"},
-        {"email": "cpmcpmking35@gmail.com", "password": "666666"},
-        {"email": "cpmcpmking36@gmail.com", "password": "666666"},
-        {"email": "cpmcpmking37@gmail.com", "password": "666666"},
-        {"email": "cpmcpmking388@gmail.com", "password": "666666"},
-        {"email": "cpmcpmking39@gmail.com", "password": "666666"},
-        {"email": "cpmcpmking40@gmail.com", "password": "666666"},
-        {"email": "cpmcpmking41@gmail.com", "password": "666666"},
-        {"email": "cpmcpmking42@gmail.com", "password": "666666"},
-        {"email": "cpmcpmking43@gmail.com", "password": "666666"},
-        {"email": "cpmcpmking44@gmail.com", "password": "666666"},
-        {"email": "cpmcpmking45@gmail.com", "password": "666666"},
-        {"email": "cpmcpmking460@gmail.com", "password": "666666"},
-        {"email": "cpmcpmking470@gmail.com", "password": "666666"},
-        {"email": "cpmcpmking480@gmail.com", "password": "666666"},
-        {"email": "cpmcpmking490@gmail.com", "password": "666666"},
-        {"email": "cpmcpmking500@gmail.com", "password": "666666"},
-        {"email": "cpmcpmking510@gmail.com", "password": "666666"},
-        {"email": "cpmcpmking520@gmail.com", "password": "666666"},
-        
-        {"email": "den_isaev_95@mail.ru", "password": "Zaebali1995"},
-        {"email": "kingcpmcpm1@gmail.com", "password": "666666"},
-        {"email": "kingcpmcpm2@gmail.com", "password": "666666"},
-        {"email": "kingcpmcpm3@gmail.com", "password": "666666"},
-        {"email": "kingcpmcpm4@gmail.com", "password": "666666"},
-        {"email": "kingcpmcpm5@gmail.com", "password": "666666"},
-        {"email": "kingcpmcpm6@gmail.com", "password": "666666"},
-        {"email": "kingcpmcpm7@gmail.com", "password": "666666"},
-        {"email": "kingcpmcpm88@gmail.com", "password": "666666"},
-        {"email": "kingcpmcpm9@gmail.com", "password": "666666"},
-        {"email": "kingcpmcpm10@gmail.com", "password": "666666"},
-        {"email": "kingcpmcpm11@gmail.com", "password": "666666"},
-        {"email": "kingcpmcpm12@gmail.com", "password": "666666"},
-        {"email": "kingcpmcpm13@gmail.com", "password": "666666"},
-        {"email": "kingcpmcpm14@gmail.com", "password": "666666"},
-        {"email": "kingcpmcpm15@gmail.com", "password": "666666"},
-        {"email": "kingcpmcpm16@gmail.com", "password": "666666"},
-        {"email": "kingcpmcpm17@gmail.com", "password": "666666"},
-        {"email": "kingcpmcpm188@gmail.com", "password": "666666"},
-        {"email": "kingcpmcpm19@gmail.com", "password": "666666"},
-        {"email": "kingcpmcpm20@gmail.com", "password": "666666"},
-        {"email": "kingcpmcpm21@gmail.com", "password": "666666"},
-        {"email": "kingcpmcpm22@gmail.com", "password": "666666"},
-        {"email": "kingcpmcpm23@gmail.com", "password": "666666"},
-        {"email": "kingcpmcpm24@gmail.com", "password": "666666"},
-        {"email": "kingcpmcpm25@gmail.com", "password": "666666"},
-        {"email": "kingcpmcpm26@gmail.com", "password": "666666"},
-        {"email": "kingcpmcpm27@gmail.com", "password": "666666"},
-        {"email": "kingcpmcpm28@gmail.com", "password": "666666"},
-        {"email": "kingcpmcpm29@gmail.com", "password": "666666"},
-        {"email": "kingcpmcpm30@gmail.com", "password": "666666"},
-        {"email": "kingcpmcpm31@gmail.com", "password": "666666"},
-        {"email": "kingcpmcpm32@gmail.com", "password": "666666"},
-        {"email": "kingcpmcpm33@gmail.com", "password": "666666"},
-        {"email": "kingcpmcpm34@gmail.com", "password": "666666"},
-        {"email": "kingcpmcpm35@gmail.com", "password": "666666"},
-        {"email": "kingcpmcpm36@gmail.com", "password": "666666"},
-        {"email": "kingcpmcpm37@gmail.com", "password": "666666"},
-        {"email": "kingcpmcpm388@gmail.com", "password": "666666"},
-        {"email": "kingcpmcpm39@gmail.com", "password": "666666"},
-        {"email": "kingcpmcpm400@gmail.com", "password": "666666"},
-        {"email": "kingcpmcpm410@gmail.com", "password": "666666"},
-        {"email": "kingcpmcpm420@gmail.com", "password": "666666"},
-        {"email": "kingcpmcpm430@gmail.com", "password": "666666"},
-        {"email": "kingcpmcpm440@gmail.com", "password": "666666"},
-        {"email": "kingcpmcpm45@gmail.com", "password": "666666"},
-        {"email": "kingcpmcpm46@gmail.com", "password": "666666"},
-        {"email": "kingcpmcpm47@gmail.com", "password": "666666"},
-        {"email": "kingcpmcpm48@gmail.com", "password": "666666"},
-        {"email": "kingcpmcpm49@gmail.com", "password": "666666"},
-        {"email": "kingcpmcpm50@gmail.com", "password": "666666"},
-        {"email": "kingcpmcpm51@gmail.com", "password": "666666"},
-        {"email": "kingcpmcpm52@gmail.com", "password": "666666"},
     ]
 
     def start_polling():
