@@ -242,7 +242,8 @@ def handle_message(message):
 
         # ❌ Проверка клана
         if not clan_id or str(clan_id) not in MY_CLAN_IDS:
-            bot.send_message(message.chat.id, "🛑 вы не являетесь участником клана левел перформанс")
+            bot.send_message(message.chat.id, "❌️ Вы не являетесь участником LEVEL PERFORMANCE 🔴🟣🔵
+")
             del user_states[message.from_user.id]
             return
 
