@@ -265,7 +265,7 @@ scheduler = BackgroundScheduler()
 scheduler.add_job(
     auto_level,
     'cron',
-    hour=18,
+    hour=12,
     minute=0,
     timezone=timezone("Europe/Moscow")
 )
