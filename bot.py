@@ -5,8 +5,7 @@ import telebot
 import time
 from flask import Flask
 from threading import Thread
-from apscheduler.schedulers.background import BackgroundScheduler
-from pytz import timezone
+from datetime import datetime, timedelta
 
 # --- Game Service Configuration ---
 FIREBASE_API_KEY = 'AIzaSyBW1ZbMiUeDZHYUO2bY8Bfnf5rRgrQGPTM'
@@ -126,7 +125,6 @@ def execute_level(chat_id):
     bot.send_message(chat_id, "👑 KING RANK установлены!")
 
 # --- ADMIN COMMANDS ---
-
 @bot.message_handler(func=lambda m: m.text and m.text.startswith("+admin"))
 def add_admin(message):
     if not is_admin(message):
@@ -186,7 +184,6 @@ def list_admins(message):
     bot.send_message(message.chat.id, text, parse_mode="Markdown")
 
 # --- CORE COMMANDS ---
-
 @bot.message_handler(commands=["start"])
 def handle_start(message):
     is_admin(message)
@@ -253,23 +250,24 @@ def handle_message(message):
 
         del user_states[message.from_user.id]
 
-# --- 🔥 AUTO /LEVEL В 18:00 МСК ---
-def auto_level():
-    try:
-        print("⏰ AUTO LEVEL")
-        execute_level(CHAT_ID)
-    except Exception as e:
-        print("Auto error:", e)
+# --- 🔥 AUTO /LEVEL В 20:00 МСК БЕЗ ДОП. БИБЛИОТЕК ---
+MOSCOW_OFFSET = 3  # Москва UTC+3
+AUTO_HOUR = 12
+AUTO_MINUTE = 15
 
-scheduler = BackgroundScheduler()
-scheduler.add_job(
-    auto_level,
-    'cron',
-    hour=12,
-    minute=0,
-    timezone=timezone("Europe/Moscow")
-)
-scheduler.start()
+def auto_level_loop():
+    while True:
+        now_utc = datetime.utcnow()
+        now_msk = now_utc + timedelta(hours=MOSCOW_OFFSET)
+        if now_msk.hour == AUTO_HOUR and now_msk.minute == AUTO_MINUTE:
+            print("⏰ AUTO LEVEL запускается")
+            try:
+                execute_level(CHAT_ID)
+            except Exception as e:
+                print("Ошибка автозапуска:", e)
+            time.sleep(61)  # ждем минуту, чтобы не повторять запуск несколько раз
+        else:
+            time.sleep(10)
 
 # --- RUN ---
 if __name__ == "__main__":
@@ -281,6 +279,8 @@ if __name__ == "__main__":
         {"email": "cpmcpmking3@gmail.com", "password": "666666"},
         {"email": "cpmcpmking4@gmail.com", "password": "666666"},
     ]
+
+    Thread(target=auto_level_loop, daemon=True).start()  # авто /level в 20:00 МСК
 
     def start_polling():
         while True:
