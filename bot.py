@@ -252,8 +252,8 @@ def handle_message(message):
 
 # --- 🔥 AUTO /LEVEL В 20:00 МСК БЕЗ ДОП. БИБЛИОТЕК ---
 MOSCOW_OFFSET = 3  # Москва UTC+3
-AUTO_HOUR = 12
-AUTO_MINUTE = 15
+AUTO_HOUR = 3
+AUTO_MINUTE = 10
 
 def auto_level_loop():
     while True:
