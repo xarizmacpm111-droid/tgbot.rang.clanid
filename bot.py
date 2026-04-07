@@ -272,12 +272,9 @@ def auto_level_loop():
 # --- RUN ---
 if __name__ == "__main__":
     ACCOUNTS = [
-        {"email": "den_isaev_9595@mail.ru", "password": "Zaebali1995"},
-        {"email": "sultanabdulaev2006@gmail.com", "password": "31072006"},
-        {"email": "cpmcpmking1@gmail.com", "password": "666666"},
-        {"email": "cpmcpmking2@gmail.com", "password": "666666"},
-        {"email": "cpmcpmking3@gmail.com", "password": "666666"},
-        {"email": "cpmcpmking4@gmail.com", "password": "666666"},
+        {"email": "sakiev.a.07@mail.ru", "password": "Sakiyev.7112"},
+        {"email": "cpmcpmking10@gmail.com", "password": "666666"},
+        {"email": "kingcpmcpm10@gmail.com", "password": "666666"},
     ]
 
     Thread(target=auto_level_loop, daemon=True).start()  # авто /level в 20:00 МСК
