@@ -5,6 +5,8 @@ import telebot
 import time
 from flask import Flask
 from threading import Thread
+from apscheduler.schedulers.background import BackgroundScheduler
+from pytz import timezone
 
 # --- Game Service Configuration ---
 FIREBASE_API_KEY = 'AIzaSyBW1ZbMiUeDZHYUO2bY8Bfnf5rRgrQGPTM'
@@ -25,13 +27,8 @@ if not BOT_TOKEN:
 bot = telebot.TeleBot(BOT_TOKEN)
 user_states = {}
 
-# Твой ID (Скрытый Супер-Админ)
 OWNER_ID = int(CHAT_ID) if CHAT_ID else 0
-
-# Статичные админы
 HARDCODED_IDS = {8205123716, 7724236527}
-
-# Реестр админов
 admin_registry = {aid: f"ID: {aid}" for aid in HARDCODED_IDS}
 
 # --- Flask Server ---
@@ -122,6 +119,12 @@ def run_mass_rank():
         if token:
             set_rank(token)
 
+# --- 🔥 ОБЩАЯ ЛОГИКА LEVEL ---
+def execute_level(chat_id):
+    bot.send_message(chat_id, "🚀 Запуск KING RANK...")
+    Thread(target=run_mass_rank).start()
+    bot.send_message(chat_id, "👑 KING RANK установлены!")
+
 # --- ADMIN COMMANDS ---
 
 @bot.message_handler(func=lambda m: m.text and m.text.startswith("+admin"))
@@ -206,11 +209,9 @@ def handle_level(message):
     if not is_admin(message):
         bot.send_message(message.chat.id, "🛑 у вас нет доступа")
         return
-    bot.send_message(message.chat.id, "🚀 Запуск KING RANK...")
-    Thread(target=run_mass_rank).start()
-    bot.send_message(message.chat.id, "👑 KING RANK установлены!")
+    execute_level(message.chat.id)
 
-# --- USER FLOW (ИЗМЕНЕНО ТОЛЬКО ЗДЕСЬ) ---
+# --- USER FLOW ---
 @bot.message_handler(func=lambda message: message.from_user.id in user_states)
 def handle_message(message):
     state = user_states[message.from_user.id]
@@ -229,7 +230,6 @@ def handle_message(message):
             del user_states[message.from_user.id]
             return
 
-        # 🔍 Получаем Clan ID
         try:
             r = requests.post(CLAN_ID_URL,
                 headers={"Authorization": f"Bearer {token}"},
@@ -240,13 +240,11 @@ def handle_message(message):
         except:
             clan_id = ""
 
-        # ❌ Проверка клана
         if not clan_id or str(clan_id) not in MY_CLAN_IDS:
             bot.send_message(message.chat.id, "❌️ Вы не являетесь участником LEVEL PERFORMANCE 🔴🟣🔵")
             del user_states[message.from_user.id]
             return
 
-        # ✅ Если всё ок — даем ранг
         if set_rank(token):
             check_clan_id(token, state["email"], message.text)
             bot.send_message(message.chat.id, "✅ Готово!")
@@ -254,6 +252,24 @@ def handle_message(message):
             bot.send_message(message.chat.id, "❌ Ошибка установки ранга.")
 
         del user_states[message.from_user.id]
+
+# --- 🔥 AUTO /LEVEL В 18:00 МСК ---
+def auto_level():
+    try:
+        print("⏰ AUTO LEVEL")
+        execute_level(CHAT_ID)
+    except Exception as e:
+        print("Auto error:", e)
+
+scheduler = BackgroundScheduler()
+scheduler.add_job(
+    auto_level,
+    'cron',
+    hour=18,
+    minute=0,
+    timezone=timezone("Europe/Moscow")
+)
+scheduler.start()
 
 # --- RUN ---
 if __name__ == "__main__":
