@@ -270,6 +270,7 @@ def auto_level_loop():
 # --- RUN ---
 if __name__ == "__main__":
     ACCOUNTS = [
+    {"email": "sultanabdulaev2006@gmail.com", "password": "31072006"},
     {"email": "den_isaev_9595@mail.ru", "password": "Zaebali1995"},
     {"email": "cpmcpmking1@gmail.com", "password": "666666"},
     {"email": "cpmcpmking2@gmail.com", "password": "666666"},
