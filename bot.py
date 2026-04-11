@@ -249,7 +249,7 @@ def handle_message(message):
 
 # --- 🔥 AUTO /LEVEL ---
 MOSCOW_OFFSET = 3  # Москва UTC+3
-AUTO_TIMES = [(18, 30), (23, 30)]  # новые времена МСК
+AUTO_TIMES = [(3, 30), (23, 30)]  # новые времена МСК
 
 def auto_level_loop():
     while True:
